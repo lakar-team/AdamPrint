@@ -130,6 +130,49 @@ Other approaches are fine; this is just the one I'd try first.
 - **Printer link:** Moonraker (after rooting the 5M) preferred; stock FlashForge
   LAN protocol (port 8899) as a no-root first step.
 
+## Slicing engine (leaning CuraEngine, embedded — not home-grown)
+
+Writing a slicing engine from scratch isn't worth it — it's one of the hardest
+parts of the whole domain, and mature engines have a decade-plus head start.
+The lean is to **embed CuraEngine**: it's headless-first (unlike Orca's
+GUI-with-a-CLI-bolted-on, which wouldn't apply filament settings for us) and it
+**compiles to WASM**, so the *same* engine can run in the browser (site-side),
+in a Worker (server-side, for agents that have no browser), and in the desktop
+agent. One engine, three homes — this is what makes both "use the site" and
+"MCP for agents" work off shared code.
+
+Open bits: we'd build/port an Adventurer 5M definition + PETG/PLA profiles for
+CuraEngine (Orca already ships these — port the start/end G-code, temps,
+retraction). And **licensing**: CuraEngine is AGPL, which for a commercial SaaS
+implies a source-availability obligation over the network — worth deciding
+early. Orca (GUI) is a fine stopgap until this lands.
+
+## MCP-friendly / API-first (so agents can use the site)
+
+Preference: build each capability as a clean **tool-function** with a typed
+input/output — `find_model`, `slice`, `estimate_cost`, `list_printers`,
+`printer_status`, `send_print`, `pause`/`resume`/`cancel`, `list_files`. Then
+expose those *same* functions through several front doors:
+
+- the **web UI** (humans on the site),
+- a plain **JSON API**,
+- an **MCP server** (agents) — the hub Worker is a natural home; Cloudflare
+  supports remote MCP on Workers, with OAuth.
+
+They're thin adapters over one core, so a human clicking "Slice" and an agent
+calling the `slice` MCP tool run the same code. Because agents have no browser,
+anything an agent must do server-side (like slicing) wants a server-side path
+too — CuraEngine-WASM in the Worker mirrors the browser build and covers it.
+
+- Auth: MCP's OAuth → a user account → tools scoped to that user's printers/
+  files (reuse the Supabase identity).
+- **(safety-leaning)** Tools that move the physical machine (send/start/stop)
+  want auth + guardrails so a confused or runaway agent can't burn filament or
+  damage the printer — same-account-only, plus sensible rate/confirmation limits.
+- Caveat: heavy slices may exceed a Worker's CPU/memory budget; big jobs might
+  need offloading (a queue/container) or pushing to the agent. Keep the tool
+  interface stable regardless of where the compute actually runs.
+
 ## Build order I'd suggest (so effort matches what's testable)
 
 1. **Now:** browser-only tools (calculators, G-code analyzer, viewers) — real
@@ -150,5 +193,11 @@ Other approaches are fine; this is just the one I'd try first.
   browser and agent are on the same LAN) for offline/low-latency use, versus
   staying purely cloud-routed. Cloud-routed is simpler; hybrid is a later
   optimization if the site-dependency ever chafes.
-- Tauri vs Electron; bundled slicer choice; Moonraker vs FlashForge protocol.
+- Tauri vs Electron; Moonraker vs FlashForge protocol.
 - How much the agent caches/knows when the hub is unreachable.
+- Where agent-facing slicing actually runs (in-Worker CuraEngine-WASM vs. a
+  container/queue vs. handed to the local agent) — depends on how heavy real
+  models get.
+- The AGPL licensing decision for embedding CuraEngine in a paid SaaS.
+- Exact MCP tool surface (names, arg shapes, which actions are agent-exposed vs.
+  human-only) — expect it to firm up as the tool-functions get built.
