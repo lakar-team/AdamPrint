@@ -6,3 +6,4 @@ Create Desktop Shortcut.bat
 launch.bat
 .env.local
 agent/config.json
+agent/agent-config.json

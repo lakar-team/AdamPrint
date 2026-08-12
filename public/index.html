@@ -104,6 +104,7 @@
     <div class="pills">
       <span class="pill">Repo <b>lakar-team/AdamPrint</b></span>
       <span class="pill">Site <b>adamprint.pages.dev</b></span>
+      <span class="pill" id="agentPill">Agent <b style="color:var(--dim)">offline</b></span>
       <span class="pill" id="printerPill">Printer <b style="color:var(--dim)">not connected</b></span>
     </div>
   </header>
@@ -162,6 +163,10 @@
         <div><button class="btn" id="loadSample">Load sample cube</button></div>
         <div><label style="display:block"><input type="file" id="fileIn" accept=".stl" hidden>
           <span class="btn" onclick="document.getElementById('fileIn').click()">Open .stl…</span></label></div>
+      </div>
+      <div class="row" id="libRow" style="display:none;margin-top:.2rem">
+        <div><label class="f">From your library — live via agent</label>
+          <select id="libSelect"></select></div>
       </div>
     </section>
 
@@ -304,6 +309,8 @@ const STAGES=[
   ['Send agent (<code>agent/send.js</code>, Moonraker)','ok','ready — needs printer on network'],
   ['Runbook (<code>agent/RUNBOOK.md</code>)','ok','done'],
   ['Site console (this page)','ok','live on adamprint.pages.dev'],
+  ['Web ↔ PC connection (local agent)','ok','localhost — live when run via the agent'],
+  ['Public-site relay (Worker + Durable Objects)','todo','planned — control from anywhere'],
   ['Slice on site (CuraEngine → WASM)','todo','planned'],
   ['MCP server (agents use the site)','todo','planned'],
 ];
@@ -328,26 +335,34 @@ document.getElementById('btnSend').onclick=()=>{
     `Real button — it will POST the selected G-code to your Adventurer 5M via the local agent
      (<code>agent/send.js</code> → Moonraker) once the printer is on your network and paired.`);};
 
-/* ---- data folder preference (you set where files live) ---- */
+/* ---- data folder (browser preference, or live via the agent) ---- */
+let AGENT=false;                         // set true if the local agent is reachable
+const __dir={val:''};
+function setDataDir(v){__dir.val=v||'';document.getElementById('dataDirDisp').textContent=__dir.val||'(not set — click Set…)';}
 (function(){
   const KEY='adamprint.dataDir';
-  const disp=document.getElementById('dataDirDisp'),editor=document.getElementById('dirEditor'),
-        input=document.getElementById('dirInput'),note=document.getElementById('fsNote'),
-        pick=document.getElementById('btnPick');
+  const editor=document.getElementById('dirEditor'),input=document.getElementById('dirInput'),
+        note=document.getElementById('fsNote'),pick=document.getElementById('btnPick');
   const supported='showDirectoryPicker' in window;
   note.innerHTML=supported
-    ? 'The path box is what the local agent (and I) will use. “Browse” also grants in-browser tools access to that folder.'
+    ? 'The path box is what the local agent uses. “Browse” also grants in-browser tools access to that folder.'
     : 'Paste the full folder path — the local agent will read/write there.';
   if(!supported&&pick) pick.style.display='none';
-  let val=localStorage.getItem(KEY)||'';
-  const render=()=>{disp.textContent=val||'(not set — click Set…)';};
-  render();
-  document.getElementById('btnSetDir').onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none';input.value=val;input.focus();};
+  setDataDir(localStorage.getItem(KEY)||'');
+  document.getElementById('btnSetDir').onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none';input.value=__dir.val;input.focus();};
   document.getElementById('btnCancelDir').onclick=()=>{editor.style.display='none';};
-  document.getElementById('btnSaveDir').onclick=()=>{val=input.value.trim();localStorage.setItem(KEY,val);render();editor.style.display='none';
-    showToast('✓ Data folder set',`Models &amp; G-code will live in <code>${val||'(unset)'}</code>. Stored as your preference — the local agent will use it once installed.`);};
+  document.getElementById('btnSaveDir').onclick=async()=>{const v=input.value.trim();editor.style.display='none';
+    if(AGENT){
+      try{const r=await(await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataDir:v})})).json();
+        setDataDir(r.dataDir||v); if(typeof refreshLibrary==='function') refreshLibrary();
+        showToast('✓ Data folder set on this PC',`The agent now uses <code>${r.dataDir||v}</code> (library/ · sliced/ · profiles/ created).`);
+      }catch(e){showToast('Save failed',e.message);}
+    }else{
+      localStorage.setItem(KEY,v); setDataDir(v);
+      showToast('✓ Data folder set (browser preference)',`Stored as <code>${v||'(unset)'}</code>. Run the local agent to apply it on your PC.`);
+    }};
   if(pick)pick.onclick=async()=>{try{const h=await window.showDirectoryPicker();if(!input.value)input.value=h.name;
-    showToast('Folder picked',`Granted in-browser access to <b>${h.name}</b>. Type/confirm its full path in the box so the agent can use it too, then Save.`);}catch(e){}};
+    showToast('Folder picked',`Granted in-browser access to <b>${h.name}</b>. Confirm its full path in the box so the agent can use it too, then Save.`);}catch(e){}};
 })();
 
 /* ---- 3D model viewer (three.js from CDN) ---- */
@@ -414,6 +429,38 @@ async function initViewer(){
   }
 }
 initViewer();
+
+/* ---- web ↔ PC: connect to the local agent if it's running ---- */
+async function refreshLibrary(){
+  if(!AGENT) return;
+  try{
+    const m=await(await fetch('/api/models')).json();
+    const sel=document.getElementById('libSelect'), row=document.getElementById('libRow');
+    sel.innerHTML='';
+    if(m.models&&m.models.length){
+      row.style.display='flex';
+      m.models.forEach(f=>{const o=document.createElement('option');o.value='library/'+f.name;
+        o.textContent=`${f.name} (${(f.size/1024).toFixed(1)} KB)`;sel.appendChild(o);});
+      sel.onchange=()=>loadFromAgent(sel.value, sel.value.replace('library/',''));
+    }else{ row.style.display='none'; }
+  }catch(e){}
+}
+async function loadFromAgent(rel,name){
+  try{ const buf=await(await fetch('/api/file?path='+encodeURIComponent(rel))).arrayBuffer();
+    const wait=setInterval(()=>{ if(three){clearInterval(wait); three.loadBuf(buf,name);} },80);
+  }catch(e){}
+}
+(async function connectAgent(){
+  try{
+    const s=await(await fetch('/api/status')).json(); if(!s||!s.connected) throw 0;
+    AGENT=true;
+    document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--ok)">connected</b> <span style="color:var(--dim)">'+(s.host||'')+'</span>';
+    const cfg=await(await fetch('/api/config')).json(); if(cfg.dataDir) setDataDir(cfg.dataDir);
+    refreshLibrary();
+  }catch(e){
+    document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--dim)">offline</b>';
+  }
+})();
 </script>
 </body>
 </html>
