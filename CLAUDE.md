@@ -1,11 +1,15 @@
-# 3DPrint
+# AdamPrint
 
 Standalone repo for Adam's 3D-printing web tools for the **FlashForge
 Adventurer 5M**. Static site on Cloudflare Pages, its own repo/site (not inside
-`lifeApp`), with a thin ADAMTOOL `public/apps/3dprint/` entry planned later —
-same split as [[pdf-to-dxf]]. Repo: github.com/lakar-team/3DPrint.
+`lifeApp`), with a thin ADAMTOOL `public/apps/adamprint/` entry planned later —
+same split as [[pdf-to-dxf]]. Repo: github.com/lakar-team/AdamPrint.
 
-For full context see [[3dprint]] in the wiki — check before non-trivial work.
+> Renamed from `3DPrint` on 2026-08-12 — the `3dprint`/`3d-print` name and its
+> `.pages.dev` subdomain were taken. **AdamPrint** ties into the ADAMTOOL brand
+> ([[adamtool]]) as a sub-brand.
+
+For full context see [[adamprint]] in the wiki — check before non-trivial work.
 
 ## Operational constraints
 
@@ -26,8 +30,8 @@ Drive-wide rule (see root `CLAUDE.md`): prefer a structural fix over a symptom
 patch, and say so explicitly if a quick patch really is the right call.
 
 <!-- wiki-chain
-id: 3dprint-claude
-status: New standalone 3D-printing tool set for the FlashForge Adventurer 5M — Cloudflare Pages, own repo github.com/lakar-team/3DPrint, output dir public/. Client-side only (filament/G-code/model calculators, viewers, parametric generators); live-printer control deferred to a later local bridge/Worker. Scaffolded 2026-08-12; thin ADAMTOOL public/apps/3dprint/ entry planned (pdf-to-dxf split).
+id: adamprint-claude
+status: New standalone 3D-printing tool set for the FlashForge Adventurer 5M — Cloudflare Pages, own repo github.com/lakar-team/AdamPrint (renamed from 3DPrint 2026-08-12, name was taken), output dir public/. Client-side only (filament/G-code/model calculators, viewers, parametric generators); live-printer control deferred to a later local bridge/Worker. Scaffolded 2026-08-12; thin ADAMTOOL public/apps/adamprint/ entry planned (pdf-to-dxf split).
 updated: 2026-08-12
-links: [3dprint, ai-platforms-claude, adamtool, pdf-to-dxf]
+links: [adamprint, ai-platforms-claude, adamtool, pdf-to-dxf]
 -->
