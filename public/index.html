@@ -76,6 +76,9 @@
   .btn.primary:hover{filter:brightness(1.08)}
   .btn.send{background:linear-gradient(135deg,#34d399,#059669);border:none;color:#04231a}
   .btn .tag{font-size:.62rem;font-weight:700;padding:.05rem .35rem;border-radius:4px;background:#0003}
+  .mini{font-size:.68rem;padding:.12rem .5rem;margin-left:.5rem;border-radius:6px;border:1px solid var(--border);background:#00000033;color:var(--accent);cursor:pointer;font-family:inherit}
+  .mini:hover{border-color:var(--accent)}
+  #dirInput{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.5rem .6rem;font-size:.82rem;font-family:inherit}
   .datamap li{margin-bottom:.7rem;list-style:none;padding-left:1.4rem;position:relative}
   .datamap li:before{content:"";position:absolute;left:0;top:.45rem;width:8px;height:8px;border-radius:2px}
   .datamap .l-local:before{background:var(--warn)} .datamap .l-repo:before{background:var(--accent)}
@@ -118,9 +121,19 @@
     <section class="card col-5 datamap">
       <h2>Where the data lives</h2>
       <ul>
-        <li class="l-local"><span class="kv">Local · this PC (off Google Drive)</span><br>
-          <code>C:\Users\adamm\AdamPrint\</code><br>
-          <span class="small muted"><code>library\</code> models · <code>sliced\</code> G-code · <code>profiles\</code></span></li>
+        <li class="l-local"><span class="kv">Local · your data folder (off Google Drive)</span><br>
+          <code id="dataDirDisp">(not set — click Set…)</code>
+          <button class="mini" id="btnSetDir">Set…</button>
+          <div id="dirEditor" style="display:none;margin-top:.55rem">
+            <input id="dirInput" placeholder="Full folder path, e.g.  D:\3D\AdamPrint" />
+            <div style="display:flex;gap:.5rem;margin-top:.5rem">
+              <button class="btn primary" id="btnSaveDir" style="padding:.45rem .8rem">Save</button>
+              <button class="btn" id="btnPick" style="padding:.45rem .8rem">Browse…</button>
+              <button class="btn" id="btnCancelDir" style="padding:.45rem .8rem">Cancel</button>
+            </div>
+            <p class="small dim" id="fsNote" style="margin:.5rem 0 0"></p>
+          </div>
+          <div class="small muted" style="margin-top:.35rem"><code>library\</code> · <code>sliced\</code> · <code>profiles\</code> live under it</div></li>
         <li class="l-local"><span class="kv">Local · slicer</span><br>
           <code>Orca-Flashforge</code> <span class="small muted">(5M + PETG/PLA profiles)</span></li>
         <li class="l-repo"><span class="kv">Code · GitHub</span><br>
@@ -284,7 +297,7 @@ tick();setInterval(tick,30000);
 /* ---- pipeline data (the real current state) ---- */
 const STAGES=[
   ['Find — I fetch/generate models','ok','works'],
-  ['Manage — local workspace','ok','<code>C:\\Users\\adamm\\AdamPrint\\</code>, off Drive'],
+  ['Manage — local workspace','ok','your chosen data folder (off Drive)'],
   ['Slicer installed (Orca-Flashforge + 5M profiles)','ok','local'],
   ['Slice — geometry (CLI)','ok','works'],
   ['Slice — material/filament (headless CLI)','warn','doesn\u2019t apply → use GUI / CuraEngine planned'],
@@ -314,6 +327,28 @@ document.getElementById('btnSend').onclick=()=>{
   showToast('▲ No printer connected yet',
     `Real button — it will POST the selected G-code to your Adventurer 5M via the local agent
      (<code>agent/send.js</code> → Moonraker) once the printer is on your network and paired.`);};
+
+/* ---- data folder preference (you set where files live) ---- */
+(function(){
+  const KEY='adamprint.dataDir';
+  const disp=document.getElementById('dataDirDisp'),editor=document.getElementById('dirEditor'),
+        input=document.getElementById('dirInput'),note=document.getElementById('fsNote'),
+        pick=document.getElementById('btnPick');
+  const supported='showDirectoryPicker' in window;
+  note.innerHTML=supported
+    ? 'The path box is what the local agent (and I) will use. “Browse” also grants in-browser tools access to that folder.'
+    : 'Paste the full folder path — the local agent will read/write there.';
+  if(!supported&&pick) pick.style.display='none';
+  let val=localStorage.getItem(KEY)||'';
+  const render=()=>{disp.textContent=val||'(not set — click Set…)';};
+  render();
+  document.getElementById('btnSetDir').onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none';input.value=val;input.focus();};
+  document.getElementById('btnCancelDir').onclick=()=>{editor.style.display='none';};
+  document.getElementById('btnSaveDir').onclick=()=>{val=input.value.trim();localStorage.setItem(KEY,val);render();editor.style.display='none';
+    showToast('✓ Data folder set',`Models &amp; G-code will live in <code>${val||'(unset)'}</code>. Stored as your preference — the local agent will use it once installed.`);};
+  if(pick)pick.onclick=async()=>{try{const h=await window.showDirectoryPicker();if(!input.value)input.value=h.name;
+    showToast('Folder picked',`Granted in-browser access to <b>${h.name}</b>. Type/confirm its full path in the box so the agent can use it too, then Save.`);}catch(e){}};
+})();
 
 /* ---- 3D model viewer (three.js from CDN) ---- */
 const selFil=document.getElementById('selFil'),selQual=document.getElementById('selQual');
