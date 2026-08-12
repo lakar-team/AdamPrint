@@ -18,7 +18,7 @@
  *   GET  /api/file?path=library/x.stl → raw file bytes (sandboxed to dataDir)
  */
 const http = require('http'), fs = require('fs'), path = require('path'),
-      url = require('url'), os = require('os');
+      url = require('url'), os = require('os'), crypto = require('crypto');
 
 const PORT = 7777;
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -35,6 +35,10 @@ const MIME = {'.html':'text/html','.js':'text/javascript','.css':'text/css',
   '.json':'application/json','.svg':'image/svg+xml','.png':'image/png',
   '.stl':'application/octet-stream','.3mf':'application/octet-stream','.gcode':'text/plain'};
 
+// generate an access token on first run (required for /api/* once exposed)
+(function ensureToken(){ const c = loadCfg();
+  if (!c.token) { c.token = crypto.randomBytes(24).toString('hex'); saveCfg(c); } })();
+
 // keep default workspace usable out of the box
 ensureDirs(loadCfg().dataDir);
 
@@ -42,6 +46,12 @@ const server = http.createServer((req, res) => {
   const u = url.parse(req.url, true);
   const json = (code, obj) => { res.writeHead(code, {'Content-Type':'application/json',
     'Access-Control-Allow-Origin':'*'}); res.end(JSON.stringify(obj)); };
+
+  // ---------- auth: /api/* needs the token (header or ?token=) ----------
+  if (u.pathname.startsWith('/api/')) {
+    const tok = req.headers['x-adamprint-token'] || u.query.token;
+    if (tok !== loadCfg().token) return json(401, { error:'unauthorized — missing/invalid token' });
+  }
 
   // ---------- API ----------
   if (u.pathname === '/api/status')
@@ -94,5 +104,8 @@ const server = http.createServer((req, res) => {
     res.end(data); });
 });
 
-server.listen(PORT, '127.0.0.1', () =>
-  console.log(`AdamPrint agent → http://localhost:${PORT}  (data: ${loadCfg().dataDir})`));
+server.listen(PORT, '127.0.0.1', () => {
+  const c = loadCfg();
+  console.log(`AdamPrint agent → http://localhost:${PORT}  (data: ${c.dataDir})`);
+  console.log(`Open the console:  http://localhost:${PORT}/?token=${c.token}`);
+});

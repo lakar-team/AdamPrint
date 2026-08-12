@@ -299,6 +299,12 @@ function tick(){const d=new Date();document.getElementById('clock').textContent=
   d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});}
 tick();setInterval(tick,30000);
 
+/* ---- agent auth token (captured from ?token=, then remembered) ---- */
+const _q=new URLSearchParams(location.search);
+if(_q.get('token')) localStorage.setItem('adamprint.token',_q.get('token'));
+const AP_TOKEN=localStorage.getItem('adamprint.token')||'';
+const apf=(u,o={})=>fetch(u,{...o,headers:{...(o.headers||{}),'x-adamprint-token':AP_TOKEN}});
+
 /* ---- pipeline data (the real current state) ---- */
 const STAGES=[
   ['Find — I fetch/generate models','ok','works'],
@@ -310,7 +316,7 @@ const STAGES=[
   ['Runbook (<code>agent/RUNBOOK.md</code>)','ok','done'],
   ['Site console (this page)','ok','live on adamprint.pages.dev'],
   ['Web ↔ PC connection (local agent)','ok','localhost — live when run via the agent'],
-  ['Public-site relay (Worker + Durable Objects)','todo','planned — control from anywhere'],
+  ['Remote link — Cloudflare Tunnel (free) + token','doing','quick tunnel proven; named tunnel + Access next'],
   ['Slice on site (CuraEngine → WASM)','todo','planned'],
   ['MCP server (agents use the site)','todo','planned'],
 ];
@@ -353,7 +359,7 @@ function setDataDir(v){__dir.val=v||'';document.getElementById('dataDirDisp').te
   document.getElementById('btnCancelDir').onclick=()=>{editor.style.display='none';};
   document.getElementById('btnSaveDir').onclick=async()=>{const v=input.value.trim();editor.style.display='none';
     if(AGENT){
-      try{const r=await(await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataDir:v})})).json();
+      try{const r=await(await apf('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataDir:v})})).json();
         setDataDir(r.dataDir||v); if(typeof refreshLibrary==='function') refreshLibrary();
         showToast('✓ Data folder set on this PC',`The agent now uses <code>${r.dataDir||v}</code> (library/ · sliced/ · profiles/ created).`);
       }catch(e){showToast('Save failed',e.message);}
@@ -434,7 +440,7 @@ initViewer();
 async function refreshLibrary(){
   if(!AGENT) return;
   try{
-    const m=await(await fetch('/api/models')).json();
+    const m=await(await apf('/api/models')).json();
     const sel=document.getElementById('libSelect'), row=document.getElementById('libRow');
     sel.innerHTML='';
     if(m.models&&m.models.length){
@@ -446,16 +452,16 @@ async function refreshLibrary(){
   }catch(e){}
 }
 async function loadFromAgent(rel,name){
-  try{ const buf=await(await fetch('/api/file?path='+encodeURIComponent(rel))).arrayBuffer();
+  try{ const buf=await(await apf('/api/file?path='+encodeURIComponent(rel))).arrayBuffer();
     const wait=setInterval(()=>{ if(three){clearInterval(wait); three.loadBuf(buf,name);} },80);
   }catch(e){}
 }
 (async function connectAgent(){
   try{
-    const s=await(await fetch('/api/status')).json(); if(!s||!s.connected) throw 0;
+    const s=await(await apf('/api/status')).json(); if(!s||!s.connected) throw 0;
     AGENT=true;
     document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--ok)">connected</b> <span style="color:var(--dim)">'+(s.host||'')+'</span>';
-    const cfg=await(await fetch('/api/config')).json(); if(cfg.dataDir) setDataDir(cfg.dataDir);
+    const cfg=await(await apf('/api/config')).json(); if(cfg.dataDir) setDataDir(cfg.dataDir);
     refreshLibrary();
   }catch(e){
     document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--dim)">offline</b>';
