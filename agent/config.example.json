@@ -1,0 +1,6 @@
+{
+  "mode": "moonraker",
+  "printerIp": "192.168.1.50",
+  "moonrakerPort": 7125,
+  "_note": "Copy this file to config.json and set printerIp once the 5M is on your network. mode 'moonraker' needs the printer rooted with Moonraker enabled (port 7125). The stock FlashForge LAN path (port 8899) is not implemented yet. See RUNBOOK.md."
+}
