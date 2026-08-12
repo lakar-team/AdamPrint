@@ -10,6 +10,9 @@ same split as [[pdf-to-dxf]]. Repo: github.com/lakar-team/AdamPrint.
 > ([[adamtool]]) as a sub-brand.
 
 For full context see [[adamprint]] in the wiki — check before non-trivial work.
+Architecture direction (thin agent + cloud-router SaaS, the browser⇄hub⇄agent
+message contract, and phasing) is in `DESIGN-NOTES.md` — written as *preferences,
+not rules*; revise it freely as the build teaches you more.
 
 ## Operational constraints
 
