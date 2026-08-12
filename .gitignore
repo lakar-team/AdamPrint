@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.log
+LocalGitRepo/
+Create Desktop Shortcut.bat
+launch.bat
+.env.local

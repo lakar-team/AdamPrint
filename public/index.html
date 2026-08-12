@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3DPrint — tools for the FlashForge Adventurer 5M</title>
+  <style>
+    :root {
+      --bg: #0f111a; --panel: #1a1d2d; --border: #292d3e;
+      --text: #e6e8f0; --muted: #a6accd; --accent: #7c83ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      display: grid; place-items: center; padding: 2rem;
+    }
+    .card {
+      max-width: 640px; width: 100%; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem;
+      box-shadow: 0 20px 50px -20px rgba(0,0,0,.6);
+    }
+    h1 { margin: 0 0 .25rem; font-size: 1.9rem; letter-spacing: -.02em; }
+    .tag {
+      display: inline-block; font-size: .7rem; text-transform: uppercase;
+      letter-spacing: .15em; color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      padding: .2rem .6rem; border-radius: 6px; margin-bottom: 1rem;
+    }
+    p { color: var(--muted); line-height: 1.6; }
+    ul { color: var(--muted); line-height: 1.8; padding-left: 1.2rem; }
+    footer { margin-top: 2rem; font-size: .8rem; color: #5b6079; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <span class="tag">Setup complete</span>
+    <h1>3DPrint</h1>
+    <p>Web tools for 3D printing with the FlashForge Adventurer 5M. This is the
+      initial deployment — the tools land here next.</p>
+    <p style="color:var(--text);font-weight:600;margin-bottom:.3rem;">Planned (all client-side):</p>
+    <ul>
+      <li>Filament cost &amp; print-time calculator</li>
+      <li>G-code analyzer &amp; toolpath preview</li>
+      <li>STL / 3MF viewer — measure, volume → cost</li>
+      <li>Parametric model generator (→ downloadable STL)</li>
+      <li>Filament library &amp; comparison</li>
+    </ul>
+    <footer>Cloudflare Pages · deploys from <code>main</code> · github.com/lakar-team/3DPrint</footer>
+  </main>
+</body>
+</html>
