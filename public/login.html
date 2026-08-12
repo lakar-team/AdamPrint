@@ -13,7 +13,7 @@
   .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:2rem;box-shadow:0 20px 50px -20px #000}
   .brand{display:flex;align-items:center;gap:.55rem;font-weight:700;font-size:1.2rem;margin-bottom:.3rem}
   .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
-  h1{font-size:1.2rem;margin:1rem 0 .2rem}
+  h1{font-size:1.25rem;margin:1rem 0 .2rem}
   .sub{color:var(--muted);font-size:.88rem;margin-bottom:1.3rem}
   label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin:.9rem 0 .35rem}
   input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:.65rem .75rem;font-size:.92rem;font-family:inherit}
@@ -21,78 +21,77 @@
   .btn{width:100%;margin-top:1.3rem;padding:.75rem;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:.95rem;cursor:pointer}
   .btn:disabled{opacity:.6;cursor:default}
   .btn:hover:not(:disabled){filter:brightness(1.08)}
-  .alt{margin-top:1rem;text-align:center;font-size:.85rem;color:var(--muted)}
   .msg{margin-top:1rem;padding:.7rem .85rem;border-radius:9px;font-size:.83rem;line-height:1.45;display:none}
   .msg.err{display:block;background:#f8717115;border:1px solid #f8717144;color:#f9b4b4}
-  .msg.ok{display:block;background:#34d39915;border:1px solid #34d39944;color:#a7f0d3}
   .home{display:block;text-align:center;margin-top:1.2rem;font-size:.82rem;color:var(--dim)}
+  .sent{text-align:center;padding:.5rem 0}
+  .sent .ic{width:56px;height:56px;border-radius:50%;background:#34d39918;border:1px solid #34d39944;
+    display:grid;place-items:center;margin:0 auto 1rem;font-size:1.6rem}
+  .sent h1{margin:.2rem 0} .sent p{color:var(--muted);font-size:.9rem}
+  .link-btn{background:none;border:none;color:var(--accent);cursor:pointer;font:inherit;padding:0}
+  .hint{margin-top:1.3rem;font-size:.76rem;color:var(--dim);line-height:1.5;text-align:center}
 </style>
 </head>
 <body>
   <div class="card">
     <div class="brand"><span class="dot"></span>AdamPrint</div>
-    <h1 id="title">Sign in</h1>
-    <div class="sub">One account across the ADAMTOOL family. Your printer links to <i>your</i> PC.</div>
 
-    <form id="form" onsubmit="return false">
-      <label for="email">Email</label>
-      <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
-      <label for="pw">Password</label>
-      <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password">
-      <button class="btn" id="submit">Sign in</button>
-    </form>
+    <div id="formState">
+      <h1>Sign in</h1>
+      <div class="sub">One account across the ADAMTOOL family — no password. We'll email you a sign-in link.</div>
+      <form id="form" onsubmit="return false">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+        <button class="btn" id="submit">Send me a sign-in link</button>
+      </form>
+      <div id="msg" class="msg"></div>
+      <div class="hint">Same email as ADAMTOOL = same account.</div>
+      <a class="home" href="/">← back to home</a>
+    </div>
 
-    <div id="msg" class="msg"></div>
-    <div class="alt" id="altLine">No account? <a href="#" data-toggle>Create one</a></div>
-    <a class="home" href="/">← back to home</a>
+    <div id="sentState" class="sent" style="display:none">
+      <div class="ic">✉️</div>
+      <h1>Check your inbox</h1>
+      <p>We sent a sign-in link to <strong id="sentEmail"></strong>.<br>Click it to finish signing in.</p>
+      <p class="hint" style="margin-top:1.4rem">Didn't get it? <button class="link-btn" id="resend">Resend link</button></p>
+      <a class="home" href="/">← back to home</a>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/config.js"></script>
   <script>
-    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-    let mode = 'signin';
     const $ = id => document.getElementById(id);
-    const show = (t, ok=false) => { const m=$('msg'); m.className='msg '+(ok?'ok':'err'); m.innerHTML=t; };
+    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    const REDIRECT = location.origin + '/app.html';   // magic link lands here; app picks up the session
+    const showErr = t => { const m=$('msg'); m.className='msg err'; m.textContent=t; };
 
-    // already logged in? go straight to the app
+    // already signed in? go to the app
     sb.auth.getSession().then(({data}) => { if (data.session) location.replace('/app.html'); });
 
-    function setMode(m){
-      mode = m;
-      $('title').textContent  = m === 'signin' ? 'Sign in' : 'Create account';
-      $('submit').textContent = m === 'signin' ? 'Sign in' : 'Create account';
-      $('altLine').innerHTML  = m === 'signin'
-        ? 'No account? <a href="#" data-toggle>Create one</a>'
-        : 'Have an account? <a href="#" data-toggle>Sign in</a>';
+    async function sendLink(email){
+      return sb.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT } });
     }
-    // event delegation survives the innerHTML swap
-    $('altLine').addEventListener('click', (e) => {
-      if (e.target.matches('[data-toggle]')) { e.preventDefault(); setMode(mode === 'signin' ? 'signup' : 'signin'); }
-    });
 
     $('submit').onclick = async () => {
-      const email = $('email').value.trim(), password = $('pw').value;
-      if (!email || !password) return show('Enter your email and password.');
-      $('submit').disabled = true; $('submit').textContent = '…';
-      try {
-        if (mode === 'signin') {
-          const { error } = await sb.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          location.replace('/app.html');
-        } else {
-          const { data, error } = await sb.auth.signUp({ email, password,
-            options: { emailRedirectTo: location.origin + '/app.html' } });
-          if (error) throw error;
-          if (data.session) location.replace('/app.html');
-          else show('Account created — check your email to confirm, then sign in.', true);
-        }
-      } catch (err) {
-        show(err.message || 'Something went wrong.');
-      } finally {
-        $('submit').disabled = false;
-        $('submit').textContent = mode === 'signin' ? 'Sign in' : 'Create account';
-      }
+      const email = $('email').value.trim();
+      if (!email) return showErr('Enter your email.');
+      $('submit').disabled = true; $('submit').textContent = 'Sending…';
+      const { error } = await sendLink(email);
+      $('submit').disabled = false; $('submit').textContent = 'Send me a sign-in link';
+      if (error) return showErr(error.message || 'Could not send the link.');
+      $('sentEmail').textContent = email;
+      $('formState').style.display = 'none';
+      $('sentState').style.display = 'block';
+      $('resend').dataset.email = email;
+    };
+
+    $('resend').onclick = async (e) => {
+      const email = e.target.dataset.email; if (!email) return;
+      e.target.textContent = 'Sending…'; e.target.disabled = true;
+      await sendLink(email);
+      e.target.textContent = 'Sent!';
+      setTimeout(() => { e.target.textContent = 'Resend link'; e.target.disabled = false; }, 5000);
     };
   </script>
 </body>
