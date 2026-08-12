@@ -23,10 +23,11 @@ const http = require('http'), fs = require('fs'), path = require('path'),
 const PORT = 7777;
 const PUBLIC = path.join(__dirname, '..', 'public');
 const CFG = path.join(__dirname, 'agent-config.json');
-const DEFAULT_DIR = path.join(os.homedir(), 'AdamPrint');
 
+// No hardcoded default — each user sets their own data folder via the console.
+// (Never assume a C:\ path; this is per-user and per-machine.)
 function loadCfg(){ try { return JSON.parse(fs.readFileSync(CFG, 'utf8')); }
-  catch { return { dataDir: DEFAULT_DIR }; } }
+  catch { return { dataDir: '' }; } }
 function saveCfg(c){ fs.writeFileSync(CFG, JSON.stringify(c, null, 2)); }
 function ensureDirs(dir){ for (const s of ['library','sliced','profiles'])
   fs.mkdirSync(path.join(dir, s), { recursive: true }); }
@@ -39,8 +40,8 @@ const MIME = {'.html':'text/html','.js':'text/javascript','.css':'text/css',
 (function ensureToken(){ const c = loadCfg();
   if (!c.token) { c.token = crypto.randomBytes(24).toString('hex'); saveCfg(c); } })();
 
-// keep default workspace usable out of the box
-ensureDirs(loadCfg().dataDir);
+// create the workspace subfolders only once a data folder has been set
+{ const _c = loadCfg(); if (_c.dataDir) ensureDirs(_c.dataDir); }
 
 const server = http.createServer((req, res) => {
   const u = url.parse(req.url, true);
@@ -72,21 +73,23 @@ const server = http.createServer((req, res) => {
   }
 
   if (u.pathname === '/api/models') {
-    const dir = path.join(loadCfg().dataDir, 'library'); let models=[];
+    const dd = loadCfg().dataDir; if (!dd) return json(200, { dir:null, models:[] });
+    const dir = path.join(dd, 'library'); let models=[];
     try { models = fs.readdirSync(dir).filter(f => /\.(stl|3mf|obj)$/i.test(f))
       .map(f => { const st = fs.statSync(path.join(dir,f)); return {name:f,size:st.size,mtime:st.mtimeMs}; }); } catch {}
     return json(200, { dir, models });
   }
 
   if (u.pathname === '/api/gcodes') {
-    const dir = path.join(loadCfg().dataDir, 'sliced'); let gcodes=[];
+    const dd = loadCfg().dataDir; if (!dd) return json(200, { gcodes:[] });
+    const dir = path.join(dd, 'sliced'); let gcodes=[];
     try { gcodes = fs.readdirSync(dir).filter(f => /\.gcode$/i.test(f))
       .map(f => ({ name:f, size:fs.statSync(path.join(dir,f)).size })); } catch {}
     return json(200, { gcodes });
   }
 
   if (u.pathname === '/api/file') {
-    const root = loadCfg().dataDir;
+    const root = loadCfg().dataDir; if (!root) return json(400, { error:'no data folder set' });
     const abs = path.resolve(root, u.query.path || '');
     if (!abs.startsWith(path.resolve(root))) return json(403, { error:'path outside data folder' });
     fs.readFile(abs, (e, data) => { if (e) return json(404, { error:'not found' });

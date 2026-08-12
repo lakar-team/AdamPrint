@@ -14,9 +14,13 @@ find  →  manage  →  slice  →  send
    generate one.
 2. **Manage** — models live in `library\`, sliced output in `sliced\`. This
    workspace is on the **C: drive, off Google Drive**, so big files don't sync:
-   - `C:\Users\adamm\AdamPrint\library\`  (models)
-   - `C:\Users\adamm\AdamPrint\sliced\`   (print-ready G-code)
-   - `C:\Users\adamm\AdamPrint\profiles\` (slicer profiles)
+   - `G:\My Drive\Art\3d Print\library\`  (models)
+   - `G:\My Drive\Art\3d Print\sliced\`   (print-ready G-code)
+   - `G:\My Drive\Art\3d Print\profiles\` (slicer profiles)
+
+   (This is *your* data folder — set per-user in the console; the build/code
+   lives separately under `G:\My Drive\AI Platforms\AdamPrint`. Never mix them,
+   and nothing lives on C:.)
 3. **Slice** — turn the model into 5M-ready G-code with Orca-Flashforge
    (Adventurer 5M machine + PETG/PLA filament + process). Output → `sliced\`.
    **Use the GUI for this right now** (dropdowns resolve printer/filament/process
@@ -55,7 +59,7 @@ find  →  manage  →  slice  →  send
 3. Copy `config.example.json` → `config.json`; set `printerIp` (and `mode`).
 4. Smoke test:
    ```
-   node agent/send.js "C:\Users\adamm\AdamPrint\sliced\<file>.gcode"
+   node agent/send.js "G:\My Drive\Art\3d Print\sliced\<file>.gcode"
    ```
    Add `--start` when you actually want it to begin printing.
 
