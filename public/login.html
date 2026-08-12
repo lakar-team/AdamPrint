@@ -5,65 +5,95 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AdamPrint — Sign in</title>
 <style>
-  :root{--bg:#0f111a;--panel:#1a1d2d;--panel2:#12141f;--border:#292d3e;--text:#e6e8f0;--muted:#a6accd;--dim:#6b7194;--accent:#7c83ff;--warn:#fbbf24}
+  :root{--bg:#0f111a;--panel:#1a1d2d;--panel2:#12141f;--border:#292d3e;--text:#e6e8f0;--muted:#a6accd;--dim:#6b7194;--accent:#7c83ff;--ok:#34d399;--err:#f87171}
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
     font-family:'Inter',system-ui,-apple-system,sans-serif;display:grid;place-items:center;padding:1.5rem}
   a{color:var(--accent);text-decoration:none}
-  .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:2rem;
-    box-shadow:0 20px 50px -20px #000}
+  .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:2rem;box-shadow:0 20px 50px -20px #000}
   .brand{display:flex;align-items:center;gap:.55rem;font-weight:700;font-size:1.2rem;margin-bottom:.3rem}
   .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
   h1{font-size:1.2rem;margin:1rem 0 .2rem}
   .sub{color:var(--muted);font-size:.88rem;margin-bottom:1.3rem}
   label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin:.9rem 0 .35rem}
-  input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:9px;
-    padding:.65rem .75rem;font-size:.92rem;font-family:inherit}
+  input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:.65rem .75rem;font-size:.92rem;font-family:inherit}
   input:focus{outline:none;border-color:var(--accent)}
-  .btn{width:100%;margin-top:1.3rem;padding:.75rem;border-radius:9px;border:none;background:var(--accent);color:#fff;
-    font-weight:600;font-size:.95rem;cursor:pointer}
-  .btn:hover{filter:brightness(1.08)}
+  .btn{width:100%;margin-top:1.3rem;padding:.75rem;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:.95rem;cursor:pointer}
+  .btn:disabled{opacity:.6;cursor:default}
+  .btn:hover:not(:disabled){filter:brightness(1.08)}
   .alt{margin-top:1rem;text-align:center;font-size:.85rem;color:var(--muted)}
-  .note{margin-top:1.4rem;padding:.75rem .85rem;border-radius:9px;background:#fbbf2412;border:1px solid #fbbf2440;
-    color:#e8d9a8;font-size:.8rem;line-height:1.5}
-  .devlink{display:block;text-align:center;margin-top:1rem;font-size:.85rem}
+  .msg{margin-top:1rem;padding:.7rem .85rem;border-radius:9px;font-size:.83rem;line-height:1.45;display:none}
+  .msg.err{display:block;background:#f8717115;border:1px solid #f8717144;color:#f9b4b4}
+  .msg.ok{display:block;background:#34d39915;border:1px solid #34d39944;color:#a7f0d3}
+  .home{display:block;text-align:center;margin-top:1.2rem;font-size:.82rem;color:var(--dim)}
 </style>
 </head>
 <body>
   <div class="card">
     <div class="brand"><span class="dot"></span>AdamPrint</div>
-    <h1>Sign in</h1>
-    <div class="sub">Your account keeps your settings and links your printer to <i>your</i> PC.</div>
+    <h1 id="title">Sign in</h1>
+    <div class="sub">One account across the ADAMTOOL family. Your printer links to <i>your</i> PC.</div>
 
-    <form id="loginForm" onsubmit="return false">
+    <form id="form" onsubmit="return false">
       <label for="email">Email</label>
       <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
       <label for="pw">Password</label>
       <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password">
-      <button class="btn" id="signin">Sign in</button>
+      <button class="btn" id="submit">Sign in</button>
     </form>
 
-    <div class="alt">No account? <a href="#" id="toggle">Create one</a></div>
-
-    <div class="note">
-      <b>Auth isn't wired yet.</b> This is the sign-in UI. Real accounts will run on
-      <b>Supabase</b> (the same auth ADAMTOOL uses) — that's the next build step and needs the project keys.
-      Until then, use the dev link below to reach the app.
-    </div>
-    <a class="devlink" href="/app.html">Continue to the app (dev, no auth) →</a>
+    <div id="msg" class="msg"></div>
+    <div class="alt" id="altLine">No account? <a href="#" data-toggle>Create one</a></div>
+    <a class="home" href="/">← back to home</a>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/config.js"></script>
   <script>
-    const signin=document.getElementById('signin');
-    signin.onclick=()=>{
-      const e=document.getElementById('email').value.trim();
-      signin.textContent='Auth coming soon (Supabase)…';
-      setTimeout(()=>{signin.textContent='Sign in';
-        alert('Sign-in isn’t connected yet.\n\nReal accounts will run on Supabase — the next step.\nFor now, use “Continue to the app (dev)”.');},400);
+    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    let mode = 'signin';
+    const $ = id => document.getElementById(id);
+    const show = (t, ok=false) => { const m=$('msg'); m.className='msg '+(ok?'ok':'err'); m.innerHTML=t; };
+
+    // already logged in? go straight to the app
+    sb.auth.getSession().then(({data}) => { if (data.session) location.replace('/app.html'); });
+
+    function setMode(m){
+      mode = m;
+      $('title').textContent  = m === 'signin' ? 'Sign in' : 'Create account';
+      $('submit').textContent = m === 'signin' ? 'Sign in' : 'Create account';
+      $('altLine').innerHTML  = m === 'signin'
+        ? 'No account? <a href="#" data-toggle>Create one</a>'
+        : 'Have an account? <a href="#" data-toggle>Sign in</a>';
+    }
+    // event delegation survives the innerHTML swap
+    $('altLine').addEventListener('click', (e) => {
+      if (e.target.matches('[data-toggle]')) { e.preventDefault(); setMode(mode === 'signin' ? 'signup' : 'signin'); }
+    });
+
+    $('submit').onclick = async () => {
+      const email = $('email').value.trim(), password = $('pw').value;
+      if (!email || !password) return show('Enter your email and password.');
+      $('submit').disabled = true; $('submit').textContent = '…';
+      try {
+        if (mode === 'signin') {
+          const { error } = await sb.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          location.replace('/app.html');
+        } else {
+          const { data, error } = await sb.auth.signUp({ email, password,
+            options: { emailRedirectTo: location.origin + '/app.html' } });
+          if (error) throw error;
+          if (data.session) location.replace('/app.html');
+          else show('Account created — check your email to confirm, then sign in.', true);
+        }
+      } catch (err) {
+        show(err.message || 'Something went wrong.');
+      } finally {
+        $('submit').disabled = false;
+        $('submit').textContent = mode === 'signin' ? 'Sign in' : 'Create account';
+      }
     };
-    document.getElementById('toggle').onclick=(ev)=>{ev.preventDefault();
-      document.querySelector('h1').textContent='Create account';
-      signin.textContent='Create account';};
   </script>
 </body>
 </html>

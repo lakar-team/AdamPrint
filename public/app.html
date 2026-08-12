@@ -10,6 +10,8 @@
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
 }}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
 <style>
   :root{
     --bg:#0f111a; --panel:#1a1d2d; --panel2:#12141f; --border:#292d3e;
@@ -95,6 +97,25 @@
 </style>
 </head>
 <body>
+<script>
+  /* auth gate — require a Supabase session, else send to login */
+  (function(){
+    if(!window.supabase || !window.SUPABASE_CONFIG || !SUPABASE_CONFIG.url) return; // fail open if lib unavailable
+    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+    window.__sb = sb;
+    sb.auth.getSession().then(({data}) => {
+      if(!data.session){ location.replace('/login.html'); return; }
+      const el = document.getElementById('acctPill');
+      if(el){
+        el.innerHTML = '<b style="color:var(--ok)">' + data.session.user.email + '</b> · ' +
+          '<a href="#" id="signout" style="color:var(--accent)">sign out</a>';
+        document.getElementById('signout').onclick = async (e) => {
+          e.preventDefault(); await sb.auth.signOut(); location.replace('/login.html');
+        };
+      }
+    });
+  })();
+</script>
 <div class="wrap">
   <header>
     <div>
@@ -106,6 +127,7 @@
       <span class="pill">Site <b>adamprint.pages.dev</b></span>
       <span class="pill" id="agentPill">Agent <b style="color:var(--dim)">offline</b></span>
       <span class="pill" id="printerPill">Printer <b style="color:var(--dim)">not connected</b></span>
+      <span class="pill" id="acctPill">Account <b style="color:var(--dim)">…</b></span>
     </div>
   </header>
 
