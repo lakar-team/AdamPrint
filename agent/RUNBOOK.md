@@ -18,14 +18,30 @@ find  →  manage  →  slice  →  send
    - `C:\Users\adamm\AdamPrint\sliced\`   (print-ready G-code)
    - `C:\Users\adamm\AdamPrint\profiles\` (slicer profiles)
 3. **Slice** — turn the model into 5M-ready G-code with Orca-Flashforge
-   (Adventurer 5M machine profile, PETG or PLA filament profile). Output → `sliced\`.
+   (Adventurer 5M machine + PETG/PLA filament + process). Output → `sliced\`.
+   **Use the GUI for this right now** (dropdowns resolve printer/filament/process
+   correctly). See the slicing note below.
 4. **Send** — push the G-code to the printer with `send.js`.
 
 ## Ready now (before the printer arrives)
 
 - Workspace + a test model: `library\calibration-cube-20mm.stl`.
 - `send.js` — the Moonraker upload/start path (Node built-ins, no installs).
-- Orca-Flashforge slicer (installing / installed) with the 5M profile.
+- Orca-Flashforge installed, with the Adventurer 5M + PETG/PLA/ABS/ASA profiles.
+
+## Slicing status (honest, 2026-08-12)
+
+- The slicer is installed and its **geometry** slicing via CLI works (correct
+  bed size, layer count, start G-code).
+- **Known snag:** driving the CLI headlessly does **not** apply the *filament*
+  profile in this build — every CLI slice falls back to a PLA-ish default
+  (~200°C nozzle), regardless of the material requested. So headless CLI slicing
+  is **not material-safe yet** and isn't used.
+- **For real prints, slice in the Orca-Flashforge GUI** — pick printer
+  (Adventurer 5M 0.4), filament (e.g. PETG), and quality from the dropdowns;
+  it resolves everything correctly. Export the G-code to `sliced\`, then `send.js`.
+- Fully-headless CLI slicing is a later refinement, best cracked (and validated
+  on real prints) once the printer is here. See `../DESIGN-NOTES.md`.
 
 ## On arrival — one-time setup (~15 min)
 
