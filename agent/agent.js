@@ -110,5 +110,5 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   const c = loadCfg();
   console.log(`AdamPrint agent → http://localhost:${PORT}  (data: ${c.dataDir})`);
-  console.log(`Open the console:  http://localhost:${PORT}/?token=${c.token}`);
+  console.log(`Open the app:  http://localhost:${PORT}/app.html?token=${c.token}`);
 });

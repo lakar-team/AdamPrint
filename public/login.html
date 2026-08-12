@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AdamPrint — Sign in</title>
+<style>
+  :root{--bg:#0f111a;--panel:#1a1d2d;--panel2:#12141f;--border:#292d3e;--text:#e6e8f0;--muted:#a6accd;--dim:#6b7194;--accent:#7c83ff;--warn:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;display:grid;place-items:center;padding:1.5rem}
+  a{color:var(--accent);text-decoration:none}
+  .card{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:2rem;
+    box-shadow:0 20px 50px -20px #000}
+  .brand{display:flex;align-items:center;gap:.55rem;font-weight:700;font-size:1.2rem;margin-bottom:.3rem}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  h1{font-size:1.2rem;margin:1rem 0 .2rem}
+  .sub{color:var(--muted);font-size:.88rem;margin-bottom:1.3rem}
+  label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--dim);margin:.9rem 0 .35rem}
+  input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:9px;
+    padding:.65rem .75rem;font-size:.92rem;font-family:inherit}
+  input:focus{outline:none;border-color:var(--accent)}
+  .btn{width:100%;margin-top:1.3rem;padding:.75rem;border-radius:9px;border:none;background:var(--accent);color:#fff;
+    font-weight:600;font-size:.95rem;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  .alt{margin-top:1rem;text-align:center;font-size:.85rem;color:var(--muted)}
+  .note{margin-top:1.4rem;padding:.75rem .85rem;border-radius:9px;background:#fbbf2412;border:1px solid #fbbf2440;
+    color:#e8d9a8;font-size:.8rem;line-height:1.5}
+  .devlink{display:block;text-align:center;margin-top:1rem;font-size:.85rem}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><span class="dot"></span>AdamPrint</div>
+    <h1>Sign in</h1>
+    <div class="sub">Your account keeps your settings and links your printer to <i>your</i> PC.</div>
+
+    <form id="loginForm" onsubmit="return false">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      <label for="pw">Password</label>
+      <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password">
+      <button class="btn" id="signin">Sign in</button>
+    </form>
+
+    <div class="alt">No account? <a href="#" id="toggle">Create one</a></div>
+
+    <div class="note">
+      <b>Auth isn't wired yet.</b> This is the sign-in UI. Real accounts will run on
+      <b>Supabase</b> (the same auth ADAMTOOL uses) — that's the next build step and needs the project keys.
+      Until then, use the dev link below to reach the app.
+    </div>
+    <a class="devlink" href="/app.html">Continue to the app (dev, no auth) →</a>
+  </div>
+
+  <script>
+    const signin=document.getElementById('signin');
+    signin.onclick=()=>{
+      const e=document.getElementById('email').value.trim();
+      signin.textContent='Auth coming soon (Supabase)…';
+      setTimeout(()=>{signin.textContent='Sign in';
+        alert('Sign-in isn’t connected yet.\n\nReal accounts will run on Supabase — the next step.\nFor now, use “Continue to the app (dev)”.');},400);
+    };
+    document.getElementById('toggle').onclick=(ev)=>{ev.preventDefault();
+      document.querySelector('h1').textContent='Create account';
+      signin.textContent='Create account';};
+  </script>
+</body>
+</html>

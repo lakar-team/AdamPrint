@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AdamPrint — Console</title>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<style>
+  :root{
+    --bg:#0f111a; --panel:#1a1d2d; --panel2:#12141f; --border:#292d3e;
+    --text:#e6e8f0; --muted:#a6accd; --dim:#6b7194;
+    --accent:#7c83ff; --ok:#34d399; --warn:#fbbf24; --todo:#5b6079; --err:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  code{font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:.85em;
+    background:#0000004d;border:1px solid var(--border);padding:.05em .4em;border-radius:5px;color:#c9cdf0}
+  .wrap{max-width:1200px;margin:0 auto;padding:1.5rem}
+  header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;
+    padding-bottom:1.25rem;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
+  h1{margin:0;font-size:1.5rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.6rem}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  .sub{color:var(--muted);font-size:.85rem;margin-top:.2rem}
+  .pills{display:flex;gap:.5rem;flex-wrap:wrap}
+  .pill{font-size:.72rem;padding:.25rem .6rem;border-radius:99px;border:1px solid var(--border);
+    background:#00000033;color:var(--muted);display:inline-flex;align-items:center;gap:.35rem}
+  .pill b{color:var(--text);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1.25rem}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:1.25rem;
+    box-shadow:0 12px 30px -18px #000}
+  .card h2{margin:0 0 .9rem;font-size:.95rem;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:.5rem}
+  .col-12{grid-column:span 12}.col-8{grid-column:span 8}.col-7{grid-column:span 7}
+  .col-6{grid-column:span 6}.col-5{grid-column:span 5}.col-4{grid-column:span 4}
+  @media(max-width:820px){.grid>*{grid-column:span 12!important}}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+  tr:last-child td{border-bottom:none}
+  .badge{font-size:.72rem;padding:.15rem .5rem;border-radius:6px;font-weight:600;white-space:nowrap}
+  .b-ok{background:#34d39922;color:var(--ok);border:1px solid #34d39944}
+  .b-warn{background:#fbbf2422;color:var(--warn);border:1px solid #fbbf2444}
+  .b-todo{background:#5b607922;color:#9aa0c4;border:1px solid #5b607955}
+  .b-doing{background:#7c83ff22;color:#aab0ff;border:1px solid #7c83ff55}
+  .muted{color:var(--muted)} .dim{color:var(--dim)} .small{font-size:.82rem}
+  /* viewer */
+  #viewer{width:100%;height:340px;border-radius:10px;background:
+    radial-gradient(120% 120% at 50% 0%,#1c2030 0%,#0c0e16 100%);border:1px solid var(--border);
+    position:relative;overflow:hidden;cursor:grab}
+  #viewer.drag{outline:2px dashed var(--accent);outline-offset:-6px}
+  #viewer canvas{display:block}
+  .vhint{position:absolute;inset:auto 0 0 0;padding:.5rem .75rem;font-size:.75rem;color:var(--dim);
+    background:linear-gradient(0deg,#0c0e16cc,transparent);pointer-events:none}
+  .vstats{display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:.75rem;font-size:.82rem}
+  .vstats div span{color:var(--dim);display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em}
+  .vstats div b{font-weight:600;font-variant-numeric:tabular-nums}
+  /* controls */
+  label.f{display:block;font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin:0 0 .3rem}
+  select,button{font-family:inherit}
+  select{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:8px;padding:.5rem .6rem;font-size:.88rem}
+  .row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.9rem}
+  .row>div{flex:1;min-width:120px}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;justify-content:center;width:100%;
+    padding:.7rem 1rem;border-radius:9px;border:1px solid var(--border);background:#00000033;
+    color:var(--text);font-size:.9rem;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent);background:#7c83ff1a}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.send{background:linear-gradient(135deg,#34d399,#059669);border:none;color:#04231a}
+  .btn .tag{font-size:.62rem;font-weight:700;padding:.05rem .35rem;border-radius:4px;background:#0003}
+  .mini{font-size:.68rem;padding:.12rem .5rem;margin-left:.5rem;border-radius:6px;border:1px solid var(--border);background:#00000033;color:var(--accent);cursor:pointer;font-family:inherit}
+  .mini:hover{border-color:var(--accent)}
+  #dirInput,#agUrl,#agTok{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.5rem .6rem;font-size:.82rem;font-family:inherit}
+  .datamap li{margin-bottom:.7rem;list-style:none;padding-left:1.4rem;position:relative}
+  .datamap li:before{content:"";position:absolute;left:0;top:.45rem;width:8px;height:8px;border-radius:2px}
+  .datamap .l-local:before{background:var(--warn)} .datamap .l-repo:before{background:var(--accent)}
+  .datamap .l-cloud:before{background:var(--ok)} .datamap .l-printer:before{background:var(--dim)}
+  .datamap ul{margin:0;padding:0}
+  .kv{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--dim)}
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:1.5rem;transform:translate(-50%,150%);background:#20233a;
+    border:1px solid var(--border);color:var(--text);padding:.85rem 1.1rem;border-radius:10px;
+    box-shadow:0 18px 40px -12px #000;max-width:min(560px,92vw);font-size:.86rem;transition:transform .3s;z-index:50}
+  #toast.show{transform:translate(-50%,0)}
+  #toast .th{font-weight:700;margin-bottom:.2rem;display:flex;align-items:center;gap:.4rem}
+  footer{margin:2rem 0 .5rem;color:var(--dim);font-size:.78rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="dot"></span>AdamPrint <span class="muted" style="font-weight:400">Console</span></h1>
+      <div class="sub">Mission control for the FlashForge Adventurer 5M · <span id="clock"></span></div>
+    </div>
+    <div class="pills">
+      <span class="pill">Repo <b>lakar-team/AdamPrint</b></span>
+      <span class="pill">Site <b>adamprint.pages.dev</b></span>
+      <span class="pill" id="agentPill">Agent <b style="color:var(--dim)">offline</b></span>
+      <span class="pill" id="printerPill">Printer <b style="color:var(--dim)">not connected</b></span>
+    </div>
+  </header>
+
+  <div class="card" id="connectBanner" style="display:none;border-color:var(--accent);margin-bottom:1.25rem">
+    <h2 style="color:var(--accent)">Link this app to your PC</h2>
+    <p class="small muted" style="margin:.2rem 0 .9rem">You're logged in, but the app isn't connected to a computer yet.
+      Run the AdamPrint <b>agent</b> on your PC and expose it with a <b>Cloudflare Tunnel</b>, then paste its URL + token below.
+      <span class="dim">(Opening the app <i>through</i> the agent locally links it automatically.)</span></p>
+    <div class="row">
+      <div><label class="f">Your agent URL (tunnel)</label><input id="agUrl" placeholder="https://xxxx.trycloudflare.com"></div>
+      <div><label class="f">Agent token</label><input id="agTok" placeholder="from agent-config.json"></div>
+    </div>
+    <button class="btn primary" id="agConnect" style="max-width:240px">Link this PC</button>
+  </div>
+
+  <div class="grid">
+    <!-- PIPELINE -->
+    <section class="card col-7">
+      <h2>Pipeline status</h2>
+      <table id="pipeline"><thead><tr><th>Stage</th><th>State</th><th>Where</th></tr></thead><tbody></tbody></table>
+      <p class="small dim" style="margin:.8rem 0 0">Snapshot — updated on each deploy. Live local/printer
+        data arrives with the agent (see <code>DESIGN-NOTES.md</code>).</p>
+    </section>
+
+    <!-- DATA MAP -->
+    <section class="card col-5 datamap">
+      <h2>Where the data lives</h2>
+      <ul>
+        <li class="l-local"><span class="kv">Local · your data folder (off Google Drive)</span><br>
+          <code id="dataDirDisp">(not set — click Set…)</code>
+          <button class="mini" id="btnSetDir">Set…</button>
+          <div id="dirEditor" style="display:none;margin-top:.55rem">
+            <input id="dirInput" placeholder="Full folder path, e.g.  D:\3D\AdamPrint" />
+            <div style="display:flex;gap:.5rem;margin-top:.5rem">
+              <button class="btn primary" id="btnSaveDir" style="padding:.45rem .8rem">Save</button>
+              <button class="btn" id="btnPick" style="padding:.45rem .8rem">Browse…</button>
+              <button class="btn" id="btnCancelDir" style="padding:.45rem .8rem">Cancel</button>
+            </div>
+            <p class="small dim" id="fsNote" style="margin:.5rem 0 0"></p>
+          </div>
+          <div class="small muted" style="margin-top:.35rem"><code>library\</code> · <code>sliced\</code> · <code>profiles\</code> live under it</div></li>
+        <li class="l-local"><span class="kv">Local · slicer</span><br>
+          <code>Orca-Flashforge</code> <span class="small muted">(5M + PETG/PLA profiles)</span></li>
+        <li class="l-repo"><span class="kv">Code · GitHub</span><br>
+          <a href="https://github.com/lakar-team/AdamPrint" target="_blank" rel="noopener">lakar-team/AdamPrint</a>
+          <span class="small muted"><code>public/</code> · <code>agent/</code> · <code>DESIGN-NOTES.md</code></span></li>
+        <li class="l-cloud"><span class="kv">Cloud · this site</span><br>
+          Cloudflare Pages <span class="small muted">(deploys from <code>main</code>)</span></li>
+        <li class="l-printer"><span class="kv">Printer</span><br>
+          FlashForge Adventurer 5M <span class="small muted">— not connected yet</span></li>
+      </ul>
+      <p class="small dim" style="margin:.4rem 0 0">Local-first by design: big model files stay on your PC;
+        the cloud holds only metadata.</p>
+    </section>
+
+    <!-- MODEL VIEWER -->
+    <section class="card col-7">
+      <h2>Model viewer</h2>
+      <div id="viewer"><div class="vhint" id="vhint">Drag an .stl here · showing the 220×220 mm bed</div></div>
+      <div class="vstats">
+        <div><span>Model</span><b id="mName">—</b></div>
+        <div><span>Size (mm)</span><b id="mDims">—</b></div>
+        <div><span>Triangles</span><b id="mTris">—</b></div>
+        <div><span>Fits 5M bed</span><b id="mFits">—</b></div>
+      </div>
+      <div class="row" style="margin-top:.9rem">
+        <div><button class="btn" id="loadSample">Load sample cube</button></div>
+        <div><label style="display:block"><input type="file" id="fileIn" accept=".stl" hidden>
+          <span class="btn" onclick="document.getElementById('fileIn').click()">Open .stl…</span></label></div>
+      </div>
+      <div class="row" id="libRow" style="display:none;margin-top:.2rem">
+        <div><label class="f">From your library — live via agent</label>
+          <select id="libSelect"></select></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS + OPERATE -->
+    <section class="card col-5">
+      <h2>Slice settings</h2>
+      <div class="row">
+        <div><label class="f">Printer</label>
+          <select disabled><option>Adventurer 5M · 0.4 mm nozzle</option></select></div>
+      </div>
+      <div class="row">
+        <div><label class="f">Filament</label>
+          <select id="selFil"><option>PETG</option><option>PLA</option><option>ABS</option><option>ASA</option></select></div>
+        <div><label class="f">Quality (layer)</label>
+          <select id="selQual"><option value="0.12">0.12 mm · Fine</option>
+            <option value="0.20" selected>0.20 mm · Standard</option>
+            <option value="0.24">0.24 mm · Draft</option></select></div>
+      </div>
+      <button class="btn primary" id="btnSlice">Slice on site <span class="tag">soon</span></button>
+      <p class="small dim" style="margin:.6rem 0 1.2rem">In-browser slicing (CuraEngine → WASM) is the next
+        build. For now, slice in the Orca GUI.</p>
+
+      <h2 style="margin-top:.5rem">Operate</h2>
+      <div class="row"><div><label class="f">Sliced file</label>
+        <select id="selGcode"><option>— nothing sliced yet —</option></select></div></div>
+      <button class="btn send" id="btnSend">▲ Send to printer <span class="tag">needs agent</span></button>
+      <p class="small dim" style="margin:.6rem 0 0">Real button. It'll POST the selected G-code to your 5M via
+        the local agent (<code>agent/send.js</code> → Moonraker) once the printer's on the network.</p>
+    </section>
+  </div>
+
+  <footer>AdamPrint Console · state reflects the repo &amp; local workspace at last deploy ·
+    <a href="https://github.com/lakar-team/AdamPrint/blob/main/DESIGN-NOTES.md" target="_blank" rel="noopener">architecture</a></footer>
+</div>
+
+<div id="toast"><div class="th" id="toastTitle"></div><div id="toastBody" class="small muted"></div></div>
+
+<!-- embedded sample model so the viewer shows something with no local access -->
+<script id="cubeStl" type="text/plain">solid cube
+facet normal 0 -1 0
+ outer loop
+  vertex 0 0 0
+  vertex 20 0 0
+  vertex 20 0 20
+ endloop
+endfacet
+facet normal 0 -1 0
+ outer loop
+  vertex 0 0 0
+  vertex 20 0 20
+  vertex 0 0 20
+ endloop
+endfacet
+facet normal 1 0 0
+ outer loop
+  vertex 20 0 0
+  vertex 20 20 0
+  vertex 20 20 20
+ endloop
+endfacet
+facet normal 1 0 0
+ outer loop
+  vertex 20 0 0
+  vertex 20 20 20
+  vertex 20 0 20
+ endloop
+endfacet
+facet normal 0 1 0
+ outer loop
+  vertex 20 20 0
+  vertex 0 20 0
+  vertex 0 20 20
+ endloop
+endfacet
+facet normal 0 1 0
+ outer loop
+  vertex 20 20 0
+  vertex 0 20 20
+  vertex 20 20 20
+ endloop
+endfacet
+facet normal -1 0 0
+ outer loop
+  vertex 0 20 0
+  vertex 0 0 0
+  vertex 0 0 20
+ endloop
+endfacet
+facet normal -1 0 0
+ outer loop
+  vertex 0 20 0
+  vertex 0 0 20
+  vertex 0 20 20
+ endloop
+endfacet
+facet normal 0 0 1
+ outer loop
+  vertex 0 0 20
+  vertex 20 0 20
+  vertex 20 20 20
+ endloop
+endfacet
+facet normal 0 0 1
+ outer loop
+  vertex 0 0 20
+  vertex 20 20 20
+  vertex 0 20 20
+ endloop
+endfacet
+facet normal 0 0 -1
+ outer loop
+  vertex 0 20 0
+  vertex 20 20 0
+  vertex 20 0 0
+ endloop
+endfacet
+facet normal 0 0 -1
+ outer loop
+  vertex 0 20 0
+  vertex 20 0 0
+  vertex 0 0 0
+ endloop
+endfacet
+endsolid cube</script>
+
+<script>
+/* ---- clock ---- */
+function tick(){const d=new Date();document.getElementById('clock').textContent=
+  d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})+' · '+
+  d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,30000);
+
+/* ---- agent connection: same-origin (served by agent) OR a remote tunnel URL ---- */
+const _q=new URLSearchParams(location.search);
+if(_q.get('agent')) localStorage.setItem('adamprint.agentUrl',_q.get('agent').replace(/\/+$/,''));
+if(_q.get('token')) localStorage.setItem('adamprint.token',_q.get('token'));
+const API_BASE=localStorage.getItem('adamprint.agentUrl')||'';   // '' = same-origin (agent-served)
+const AP_TOKEN=localStorage.getItem('adamprint.token')||'';
+const apf=(p,o={})=>fetch(API_BASE+p,{...o,headers:{...(o.headers||{}),'x-adamprint-token':AP_TOKEN}});
+
+/* ---- pipeline data (the real current state) ---- */
+const STAGES=[
+  ['Find — I fetch/generate models','ok','works'],
+  ['Manage — local workspace','ok','your chosen data folder (off Drive)'],
+  ['Slicer installed (Orca-Flashforge + 5M profiles)','ok','local'],
+  ['Slice — geometry (CLI)','ok','works'],
+  ['Slice — material/filament (headless CLI)','warn','doesn\u2019t apply → use GUI / CuraEngine planned'],
+  ['Send agent (<code>agent/send.js</code>, Moonraker)','ok','ready — needs printer on network'],
+  ['Runbook (<code>agent/RUNBOOK.md</code>)','ok','done'],
+  ['Site console (this page)','ok','live on adamprint.pages.dev'],
+  ['Web ↔ PC connection (local agent)','ok','localhost — live when run via the agent'],
+  ['Remote link — Cloudflare Tunnel (free) + token','doing','quick tunnel proven; named tunnel + Access next'],
+  ['Slice on site (CuraEngine → WASM)','todo','planned'],
+  ['MCP server (agents use the site)','todo','planned'],
+];
+const BADGE={ok:['b-ok','\u2713 works'],warn:['b-warn','\u26a0 partial'],
+  doing:['b-doing','\u25cf building'],todo:['b-todo','planned']};
+const tb=document.querySelector('#pipeline tbody');
+STAGES.forEach(([name,st,where])=>{const [cls,txt]=BADGE[st];
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td>${name}</td><td><span class="badge ${cls}">${txt}</span></td><td class="small muted">${where}</td></tr>`);});
+
+/* ---- honest toast for not-yet-wired actions ---- */
+const toast=document.getElementById('toast');let tt;
+function showToast(title,body){document.getElementById('toastTitle').textContent=title;
+  document.getElementById('toastBody').innerHTML=body;toast.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('show'),6000);}
+document.getElementById('btnSlice').onclick=()=>{const f=selFil.value,q=selQual.value;
+  showToast('⚙ Slicing on the site isn\u2019t wired yet',
+    `This is the real control. It\u2019ll slice with <b>CuraEngine (WASM)</b> right here in the browser — planned next.
+     Selected: <b>${f}</b> @ <b>${q} mm</b>. For now, slice in the Orca GUI.`);};
+document.getElementById('btnSend').onclick=()=>{
+  showToast('▲ No printer connected yet',
+    `Real button — it will POST the selected G-code to your Adventurer 5M via the local agent
+     (<code>agent/send.js</code> → Moonraker) once the printer is on your network and paired.`);};
+
+/* ---- data folder (browser preference, or live via the agent) ---- */
+let AGENT=false;                         // set true if the local agent is reachable
+const __dir={val:''};
+function setDataDir(v){__dir.val=v||'';document.getElementById('dataDirDisp').textContent=__dir.val||'(not set — click Set…)';}
+(function(){
+  const KEY='adamprint.dataDir';
+  const editor=document.getElementById('dirEditor'),input=document.getElementById('dirInput'),
+        note=document.getElementById('fsNote'),pick=document.getElementById('btnPick');
+  const supported='showDirectoryPicker' in window;
+  note.innerHTML=supported
+    ? 'The path box is what the local agent uses. “Browse” also grants in-browser tools access to that folder.'
+    : 'Paste the full folder path — the local agent will read/write there.';
+  if(!supported&&pick) pick.style.display='none';
+  setDataDir(localStorage.getItem(KEY)||'');
+  document.getElementById('btnSetDir').onclick=()=>{editor.style.display=editor.style.display==='none'?'block':'none';input.value=__dir.val;input.focus();};
+  document.getElementById('btnCancelDir').onclick=()=>{editor.style.display='none';};
+  document.getElementById('btnSaveDir').onclick=async()=>{const v=input.value.trim();editor.style.display='none';
+    if(AGENT){
+      try{const r=await(await apf('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataDir:v})})).json();
+        setDataDir(r.dataDir||v); if(typeof refreshLibrary==='function') refreshLibrary();
+        showToast('✓ Data folder set on this PC',`The agent now uses <code>${r.dataDir||v}</code> (library/ · sliced/ · profiles/ created).`);
+      }catch(e){showToast('Save failed',e.message);}
+    }else{
+      localStorage.setItem(KEY,v); setDataDir(v);
+      showToast('✓ Data folder set (browser preference)',`Stored as <code>${v||'(unset)'}</code>. Run the local agent to apply it on your PC.`);
+    }};
+  if(pick)pick.onclick=async()=>{try{const h=await window.showDirectoryPicker();if(!input.value)input.value=h.name;
+    showToast('Folder picked',`Granted in-browser access to <b>${h.name}</b>. Confirm its full path in the box so the agent can use it too, then Save.`);}catch(e){}};
+})();
+
+/* ---- 3D model viewer (three.js from CDN) ---- */
+const selFil=document.getElementById('selFil'),selQual=document.getElementById('selQual');
+const BED=220;
+let three=null;
+async function initViewer(){
+  const host=document.getElementById('viewer');
+  try{
+    const THREE=await import('three');
+    const {STLLoader}=await import('three/addons/loaders/STLLoader.js');
+    const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
+    const scene=new THREE.Scene();
+    const cam=new THREE.PerspectiveCamera(45,host.clientWidth/host.clientHeight,1,4000);
+    cam.up.set(0,0,1);cam.position.set(230,-260,210);
+    const rnd=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    rnd.setPixelRatio(Math.min(devicePixelRatio,2));
+    rnd.setSize(host.clientWidth,host.clientHeight);host.appendChild(rnd.domElement);
+    scene.add(new THREE.AmbientLight(0xffffff,.6));
+    const dl=new THREE.DirectionalLight(0xffffff,.9);dl.position.set(160,-200,300);scene.add(dl);
+    // bed
+    const grid=new THREE.GridHelper(BED,22,0x3a4060,0x232741);grid.rotation.x=Math.PI/2;scene.add(grid);
+    const plate=new THREE.Mesh(new THREE.PlaneGeometry(BED,BED),
+      new THREE.MeshBasicMaterial({color:0x11131d,transparent:true,opacity:.6}));scene.add(plate);
+    const ctr=new OrbitControls(cam,rnd.domElement);ctr.enableDamping=true;ctr.target.set(0,0,20);
+    let mesh=null;
+    const mat=new THREE.MeshStandardMaterial({color:0x7c83ff,metalness:.15,roughness:.55,flatShading:false});
+    function setModel(geom,name){
+      if(mesh){scene.remove(mesh);mesh.geometry.dispose();}
+      geom.computeVertexNormals();geom.computeBoundingBox();
+      const bb=geom.boundingBox,sz=new THREE.Vector3();bb.getSize(sz);
+      const c=new THREE.Vector3();bb.getCenter(c);
+      geom.translate(-c.x,-c.y,-bb.min.z); // center X/Y, base on bed (z=0)
+      mesh=new THREE.Mesh(geom,mat);scene.add(mesh);
+      ctr.target.set(0,0,sz.z/2);
+      document.getElementById('mName').textContent=name;
+      document.getElementById('mDims').textContent=`${sz.x.toFixed(1)} × ${sz.y.toFixed(1)} × ${sz.z.toFixed(1)}`;
+      document.getElementById('mTris').textContent=(geom.attributes.position.count/3).toLocaleString();
+      const fits=sz.x<=BED&&sz.y<=BED&&sz.z<=BED;
+      const el=document.getElementById('mFits');el.textContent=fits?'yes':'TOO BIG';
+      el.style.color=fits?'var(--ok)':'var(--err)';
+    }
+    const loader=new STLLoader();
+    function loadText(txt,name){setModel(loader.parse(new TextEncoder().encode(txt).buffer),name);}
+    function loadBuf(buf,name){setModel(loader.parse(buf),name);}
+    three={THREE,loadText,loadBuf};
+    // sample cube on start
+    loadText(document.getElementById('cubeStl').textContent,'calibration-cube-20mm.stl');
+    // interactions
+    document.getElementById('loadSample').onclick=()=>loadText(document.getElementById('cubeStl').textContent,'calibration-cube-20mm.stl');
+    document.getElementById('fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();r.onload=()=>loadBuf(r.result,f.name);r.readAsArrayBuffer(f);};
+    host.addEventListener('dragover',e=>{e.preventDefault();host.classList.add('drag');});
+    host.addEventListener('dragleave',()=>host.classList.remove('drag'));
+    host.addEventListener('drop',e=>{e.preventDefault();host.classList.remove('drag');
+      const f=e.dataTransfer.files[0];if(!f)return;const r=new FileReader();
+      r.onload=()=>loadBuf(r.result,f.name);r.readAsArrayBuffer(f);});
+    addEventListener('resize',()=>{cam.aspect=host.clientWidth/host.clientHeight;cam.updateProjectionMatrix();
+      rnd.setSize(host.clientWidth,host.clientHeight);});
+    (function anim(){requestAnimationFrame(anim);ctr.update();rnd.render(scene,cam);})();
+  }catch(err){
+    host.innerHTML='<div style="padding:2rem;color:var(--dim);font-size:.85rem">3D viewer needs a modern '+
+      'browser with network access (three.js). '+err.message+'</div>';
+  }
+}
+initViewer();
+
+/* ---- web ↔ PC: connect to the local agent if it's running ---- */
+async function refreshLibrary(){
+  if(!AGENT) return;
+  try{
+    const m=await(await apf('/api/models')).json();
+    const sel=document.getElementById('libSelect'), row=document.getElementById('libRow');
+    sel.innerHTML='';
+    if(m.models&&m.models.length){
+      row.style.display='flex';
+      m.models.forEach(f=>{const o=document.createElement('option');o.value='library/'+f.name;
+        o.textContent=`${f.name} (${(f.size/1024).toFixed(1)} KB)`;sel.appendChild(o);});
+      sel.onchange=()=>loadFromAgent(sel.value, sel.value.replace('library/',''));
+    }else{ row.style.display='none'; }
+  }catch(e){}
+}
+async function loadFromAgent(rel,name){
+  try{ const buf=await(await apf('/api/file?path='+encodeURIComponent(rel))).arrayBuffer();
+    const wait=setInterval(()=>{ if(three){clearInterval(wait); three.loadBuf(buf,name);} },80);
+  }catch(e){}
+}
+(async function connectAgent(){
+  try{
+    const s=await(await apf('/api/status')).json(); if(!s||!s.connected) throw 0;
+    AGENT=true;
+    document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--ok)">connected</b> <span style="color:var(--dim)">'+(s.host||'')+'</span>';
+    const cfg=await(await apf('/api/config')).json(); if(cfg.dataDir) setDataDir(cfg.dataDir);
+    document.getElementById('connectBanner').style.display='none';
+    refreshLibrary();
+  }catch(e){
+    document.getElementById('agentPill').innerHTML='Agent <b style="color:var(--dim)">offline</b>';
+    document.getElementById('connectBanner').style.display='block';
+  }
+})();
+document.getElementById('agConnect').onclick=()=>{
+  const url=document.getElementById('agUrl').value.trim().replace(/\/+$/,'');
+  const tok=document.getElementById('agTok').value.trim();
+  if(url) localStorage.setItem('adamprint.agentUrl',url);
+  if(tok) localStorage.setItem('adamprint.token',tok);
+  location.reload();
+};
+</script>
+</body>
+</html>
