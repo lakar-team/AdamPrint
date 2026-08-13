@@ -21,9 +21,10 @@ const CLOUDFLARED = [
 ].find(p => fs.existsSync(p)) || path.join(__dirname, 'cloudflared.exe');
 
 let cfg;
-try { cfg = JSON.parse(fs.readFileSync(CFG, 'utf8')); }
-catch { console.error('No agent-config.json — run the agent once first.'); process.exit(1); }
-if (!fs.existsSync(CLOUDFLARED)) { console.error('cloudflared.exe not found in tools\\'); process.exit(1); }
+try { cfg = JSON.parse(fs.readFileSync(CFG, 'utf8')); } catch { cfg = {}; }
+// ensure the agent token exists BEFORE we print/publish it (agent.js reuses this same one)
+if (!cfg.token) { cfg.token = require('crypto').randomBytes(24).toString('hex'); fs.writeFileSync(CFG, JSON.stringify(cfg, null, 2)); }
+if (!fs.existsSync(CLOUDFLARED)) { console.error('cloudflared.exe not found next to the agent.'); process.exit(1); }
 
 console.log('Starting AdamPrint agent + tunnel…');
 
