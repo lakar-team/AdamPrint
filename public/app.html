@@ -148,15 +148,24 @@
   </header>
 
   <div class="card" id="connectBanner" style="display:none;border-color:var(--accent);margin-bottom:1.25rem">
-    <h2 style="color:var(--accent)">Link this app to your PC</h2>
-    <p class="small muted" style="margin:.2rem 0 .9rem">You're logged in, but the app isn't connected to a computer yet.
-      Run the AdamPrint <b>agent</b> on your PC and expose it with a <b>Cloudflare Tunnel</b>, then paste its URL + token below.
-      <span class="dim">(Opening the app <i>through</i> the agent locally links it automatically.)</span></p>
-    <div class="row">
-      <div><label class="f">Your agent URL (tunnel)</label><input id="agUrl" placeholder="https://xxxx.trycloudflare.com"></div>
-      <div><label class="f">Agent token</label><input id="agTok" placeholder="from agent-config.json"></div>
-    </div>
-    <button class="btn primary" id="agConnect" style="max-width:240px">Link this PC</button>
+    <h2 style="color:var(--accent)">Connect your PC</h2>
+    <p class="small muted" style="margin:.2rem 0 1rem">To let AdamPrint drive your printer, run the small
+      <b>agent</b> on the computer your printer is connected to. It checks/installs what it needs and links to
+      your account — this page then connects automatically.</p>
+    <ol class="small muted" style="margin:0 0 1rem;padding-left:1.2rem;line-height:2">
+      <li><b>Download the agent</b> and run it:<br>
+        <a class="btn primary" href="/download/adamprint-connect.bat" download style="max-width:260px;margin:.5rem 0">⬇ Download agent (Windows)</a></li>
+      <li>Follow its prompts to <b>pair once</b> (your email + the emailed code).</li>
+      <li>Come back here — it connects automatically. Keep the agent window open while printing.</li>
+    </ol>
+    <details style="margin-top:.3rem">
+      <summary class="small dim" style="cursor:pointer">Advanced: link manually with a URL + token</summary>
+      <div class="row" style="margin-top:.7rem">
+        <div><label class="f">Agent URL (tunnel)</label><input id="agUrl" placeholder="https://xxxx.trycloudflare.com"></div>
+        <div><label class="f">Agent token</label><input id="agTok" placeholder="from agent-config.json"></div>
+      </div>
+      <button class="btn primary" id="agConnect" style="max-width:240px">Link this PC</button>
+    </details>
   </div>
 
   <div class="grid">

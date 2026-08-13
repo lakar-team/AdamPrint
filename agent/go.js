@@ -15,7 +15,10 @@ const { makeSupa } = require('./supa.js');
 const SB = require('./supabase.js');
 
 const CFG = path.join(__dirname, 'agent-config.json');
-const CLOUDFLARED = path.join(__dirname, '..', 'tools', 'cloudflared.exe');
+const CLOUDFLARED = [
+  path.join(__dirname, '..', 'tools', 'cloudflared.exe'), // dev/repo layout
+  path.join(__dirname, 'cloudflared.exe'),                // installed layout
+].find(p => fs.existsSync(p)) || path.join(__dirname, 'cloudflared.exe');
 
 let cfg;
 try { cfg = JSON.parse(fs.readFileSync(CFG, 'utf8')); }
