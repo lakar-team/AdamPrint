@@ -98,9 +98,10 @@
 </head>
 <body>
 <script>
-  /* auth gate — require a Supabase session (incl. magic-link return), else send to login */
+  /* auth gate — require a Supabase session, then load this account's paired PC */
+  window.__authReady = new Promise(r => (window.__authReadyResolve = r));
   (async function(){
-    if(!window.supabase || !window.SUPABASE_CONFIG || !SUPABASE_CONFIG.url) return; // fail open if lib unavailable
+    if(!window.supabase || !window.SUPABASE_CONFIG || !SUPABASE_CONFIG.url){ window.__authReadyResolve(); return; }
     const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
     window.__sb = sb;
     let { data } = await sb.auth.getSession();
@@ -112,6 +113,15 @@
     if(!data.session){ location.replace('/login.html'); return; }
     // tidy the magic-link hash out of the URL (keep agent ?token/?agent params)
     if(location.hash.includes('access_token')) history.replaceState(null,'',location.pathname+location.search);
+    // auto-connect: pull this account's paired PC from Supabase into the agent connection
+    try{
+      const { data: row } = await sb.from('printer_agents').select('agent_url,agent_token').eq('user_id', data.session.user.id).maybeSingle();
+      if(row && row.agent_url){
+        localStorage.setItem('adamprint.agentUrl', row.agent_url);
+        if(row.agent_token) localStorage.setItem('adamprint.token', row.agent_token);
+      }
+    }catch(e){}
+    window.__authReadyResolve();
     const el = document.getElementById('acctPill');
     if(el){
       el.innerHTML = '<b style="color:var(--ok)">' + data.session.user.email + '</b> · ' +
@@ -339,13 +349,13 @@ function tick(){const d=new Date();document.getElementById('clock').textContent=
   d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});}
 tick();setInterval(tick,30000);
 
-/* ---- agent connection: same-origin (served by agent) OR a remote tunnel URL ---- */
+/* ---- agent connection: from your account (auto), a ?agent= URL, or same-origin ---- */
 const _q=new URLSearchParams(location.search);
 if(_q.get('agent')) localStorage.setItem('adamprint.agentUrl',_q.get('agent').replace(/\/+$/,''));
 if(_q.get('token')) localStorage.setItem('adamprint.token',_q.get('token'));
-const API_BASE=localStorage.getItem('adamprint.agentUrl')||'';   // '' = same-origin (agent-served)
-const AP_TOKEN=localStorage.getItem('adamprint.token')||'';
-const apf=(p,o={})=>fetch(API_BASE+p,{...o,headers:{...(o.headers||{}),'x-adamprint-token':AP_TOKEN}});
+const agentBase=()=>localStorage.getItem('adamprint.agentUrl')||'';   // '' = same-origin
+const agentTok=()=>localStorage.getItem('adamprint.token')||'';
+const apf=(p,o={})=>fetch(agentBase()+p,{...o,headers:{...(o.headers||{}),'x-adamprint-token':agentTok()}});
 
 /* ---- pipeline data (the real current state) ---- */
 const STAGES=[
@@ -499,6 +509,7 @@ async function loadFromAgent(rel,name){
   }catch(e){}
 }
 (async function connectAgent(){
+  await (window.__authReady || Promise.resolve());   // wait for account's paired PC to load
   try{
     const s=await(await apf('/api/status')).json(); if(!s||!s.connected) throw 0;
     AGENT=true;
